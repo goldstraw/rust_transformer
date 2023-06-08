@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::fs::File;
 use std::io::Read;
 use serde::{Serialize, Deserialize};
-use log::{info};
+use log::info;
 
 // Defines the embedding object
 #[derive(Serialize, Deserialize)]
