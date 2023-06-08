@@ -1,5 +1,7 @@
 /// A trait for a block in the transformer
 pub trait Block {
+    type Output;
+
     /// Forward propagates input through the block
-    fn forward_propagate(&mut self, input: Vec<Vec<Vec<f32>>>) -> Vec<Vec<Vec<f32>>>;
+    fn forward_propagate(&self) -> Self::Output;
 }
