@@ -15,7 +15,7 @@ pub struct Dense {
     pub input_size: usize,
     linear: bool,
     layer: Vec<Array1::<f32>>,
-    error: Vec<Array1::<f32>>,
+    _error: Vec<Array1::<f32>>,
     params: DenseParams,
 }
 
@@ -53,7 +53,7 @@ impl Dense {
             input_size: layer_sizes[0],
             linear,
             layer,
-            error,
+            _error: error,
             params
         };
 
@@ -70,7 +70,7 @@ impl Block for Dense {
     }
 
     fn forward_propagate(&mut self) -> Self::Output {
-        info!("Dense layer input: \n {:?}", self.input);
+        info!("Dense block input: \n {:?}", self.input);
 
         self.layer[0].assign(&self.input);
         for i in 1..self.layer.len() {
@@ -81,7 +81,7 @@ impl Block for Dense {
             }
         }
 
-        info!("Dense layer output: \n {:?}", self.layer[self.layer.len()-1]);
+        info!("Dense block output: \n {:?}", self.layer[self.layer.len()-1]);
 
         self.layer[self.layer.len()-1].clone()
     }

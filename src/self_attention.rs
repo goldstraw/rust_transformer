@@ -58,7 +58,7 @@ impl Block for SelfAttention {
     }
 
     fn forward_propagate(&mut self) -> Self::Output {
-        info!("Self-attention layer input: \n {:?}", self.input);
+        info!("Self-attention block input: \n {:?}", self.input);
 
         // Generate context by finding weight vectors
         let mut weights = Array2::<f32>::zeros((self.input.shape()[0], self.input.shape()[1]));
@@ -98,7 +98,7 @@ impl Block for SelfAttention {
             }
         }
 
-        info!("Self-attention layer output: \n {:?}", output);
+        info!("Self-attention block output: \n {:?}", output);
 
         output
     }

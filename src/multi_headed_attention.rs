@@ -42,7 +42,7 @@ impl Block for MultiHeadedAttention {
     }
 
     fn forward_propagate(&mut self) -> Self::Output {
-        info!("Multi-headed attention layer input: \n {:?}", self.input);
+        info!("Multi-headed attention block input: \n {:?}", self.input);
 
         let mut concat_heads = Array1::<f32>::zeros(self.params.linear.input_size);
         let mut concat_index = 0;
@@ -64,7 +64,7 @@ impl Block for MultiHeadedAttention {
         self.params.linear.set_block(concat_heads);
         let output = self.params.linear.forward_propagate();
 
-        info!("Multi-headed attention layer output: \n {:?}", output);
+        info!("Multi-headed attention block output: \n {:?}", output);
 
         output.into_shape([rows, cols]).unwrap()
     }
