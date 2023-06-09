@@ -7,5 +7,5 @@ pub trait Block {
     fn set_block(&mut self, value: Self::Input);
 
     /// Forward propagates input through the block
-    fn forward_propagate(&self) -> Self::Output;
+    fn forward_propagate(&mut self) -> Self::Output;
 }

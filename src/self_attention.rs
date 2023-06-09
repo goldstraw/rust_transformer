@@ -57,7 +57,7 @@ impl Block for SelfAttention {
         self.input = value;
     }
 
-    fn forward_propagate(&self) -> Self::Output {
+    fn forward_propagate(&mut self) -> Self::Output {
         info!("Self-attention layer input: \n {:?}", self.input);
 
         // Generate context by finding weight vectors
