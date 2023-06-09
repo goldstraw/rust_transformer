@@ -12,6 +12,8 @@ pub struct DenseParams {
 // Defines dense layer struct
 pub struct Dense {
     input: Array1::<f32>,
+    pub input_size: usize,
+    linear: bool,
     layer: Vec<Array1::<f32>>,
     error: Vec<Array1::<f32>>,
     params: DenseParams,
@@ -19,7 +21,7 @@ pub struct Dense {
 
 impl Dense {
     /// Create a new self-attention block with the given parameters
-    pub fn new(layer_sizes: Array1<usize>) -> Dense {
+    pub fn new(layer_sizes: Array1<usize>, linear: bool) -> Dense {
         let input = Array1::<f32>::zeros(layer_sizes[0]);
         let mut layer = vec![];
         let mut error = vec![];
@@ -48,6 +50,8 @@ impl Dense {
 
         let block: Dense = Dense {
             input,
+            input_size: layer_sizes[0],
+            linear,
             layer,
             error,
             params
@@ -72,7 +76,9 @@ impl Block for Dense {
         for i in 1..self.layer.len() {
             let weighted_sum = &self.layer[i - 1].dot(&self.params.weights[i - 1]);
             self.layer[i] = weighted_sum + &self.params.biases[i];
-            self.layer[i].mapv_inplace(|x| if x > 0.0 { x } else { 0.0 });
+            if !self.linear {
+                self.layer[i].mapv_inplace(|x| if x > 0.0 { x } else { 0.0 });
+            }
         }
 
         info!("Dense layer output: \n {:?}", self.layer[self.layer.len()-1]);
