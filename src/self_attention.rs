@@ -20,9 +20,9 @@ impl SelfAttention {
     /// Create a new self-attention block with the given parameters
     pub fn new(rows: usize, cols: usize) -> SelfAttention {
         let input = Array2::<f32>::zeros((rows, cols));
-        let mut key = Array2::<f32>::zeros((rows, cols));
-        let mut query = Array2::<f32>::zeros((rows, cols));
-        let mut value = Array2::<f32>::zeros((rows, cols));
+        let mut key = Array2::<f32>::zeros((cols, cols));
+        let mut query = Array2::<f32>::zeros((cols, cols));
+        let mut value = Array2::<f32>::zeros((cols, cols));
 
         // Use He initialisation by using a mean of 0.0 and a standard deviation of sqrt(2/n)
         let normal = Normal::new(0.0, (2.0/(rows*cols) as f32).sqrt()).unwrap();

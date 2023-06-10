@@ -22,7 +22,7 @@ pub struct EncoderBlock {
 
 impl EncoderBlock {
     /// Create a new encoder block with the given parameters
-    pub fn new(num_heads: usize, rows: usize, cols: usize, layer_sizes: Array1<usize>) -> EncoderBlock {
+    pub fn new(rows: usize, cols: usize, num_heads: usize, layer_sizes: Array1<usize>) -> EncoderBlock {
         let multi_headed = MultiHeadedAttention::new(num_heads, rows, cols);
         let add_and_norm = AddAndNorm::new(rows, cols);
         let feed_forward = Dense::new(layer_sizes, false);
