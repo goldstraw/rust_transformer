@@ -68,4 +68,8 @@ impl Block for EncoderBlock {
 
         output
     }
+
+    fn back_propagate(&mut self, error: Self::Output) -> Self::Input {
+        error
+    }
 }

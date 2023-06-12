@@ -1,4 +1,4 @@
-use ndarray::{Array1, Array2};
+use ndarray::{Array1, Array2, arr1};
 use std::collections::HashMap;
 use crate::block::Block;
 use crate::encoder_block::EncoderBlock;
@@ -64,5 +64,9 @@ impl Block for Encoder {
         info!("Encoder block output: \n {:?}", output);
 
         output
+    }
+
+    fn back_propagate(&mut self, error: Self::Output) -> Self::Input {
+        arr1(&["a".to_string()])
     }
 }

@@ -35,6 +35,6 @@ pub fn run() {
     // p.set_block(arr2(&[[0.0,0.0,0.0,0.0], [0.0,0.0,0.0,0.0], [0.0,0.0,0.0,0.0]]));
     // p.forward_propagate();
 
-    let mut e = Encoder::new(3, 200, 3, arr1(&[600,400,600]), word_embeddings);
+    let mut e = Encoder::new(3, 3, 3, arr1(&[9,400,9]), word_embeddings);
     e.forward_propagate(arr1(&["movie".to_string(), "good".to_string(), "bad".to_string()]));
 }

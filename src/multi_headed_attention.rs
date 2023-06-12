@@ -1,4 +1,4 @@
-use ndarray::{arr1, Array1, Array2};
+use ndarray::{arr1, Array1, Array2, Axis};
 use crate::block::Block;
 use crate::self_attention::SelfAttention;
 use crate::dense::Dense;
@@ -13,6 +13,9 @@ pub struct MultiHeadedAttentionParams {
 // Defines multi-headed attention struct
 pub struct MultiHeadedAttention {
     input: Array2::<f32>,
+    rows: usize,
+    cols: usize,
+    num_heads: usize,
     params: MultiHeadedAttentionParams,
 }
 
@@ -26,6 +29,9 @@ impl MultiHeadedAttention {
 
         let block: MultiHeadedAttention = MultiHeadedAttention {
             input: Array2::<f32>::zeros((rows, cols)),
+            rows,
+            cols,
+            num_heads,
             params
         };
 
@@ -43,14 +49,10 @@ impl Block for MultiHeadedAttention {
 
         let mut concat_heads = Array1::<f32>::zeros(self.params.linear.input_size);
         let mut concat_index = 0;
-        let mut rows = 0;
-        let mut cols = 0;
         for i in 0..self.params.heads.len() {
             let head = self.params.heads[i].forward_propagate(self.input.clone());
-            rows = head.shape()[0];
-            cols = head.shape()[1];
-            for j in 0..rows {
-                for k in 0..cols {
+            for j in 0..self.input.shape()[0] {
+                for k in 0..self.input.shape()[1] {
                     concat_heads[concat_index] = head[[j,k]];
                     concat_index += 1;
                 }
@@ -61,6 +63,20 @@ impl Block for MultiHeadedAttention {
 
         info!("Multi-headed attention block output: \n {:?}", output);
 
-        output.into_shape([rows, cols]).unwrap()
+        output.into_shape([self.input.shape()[0], self.input.shape()[1]]).unwrap()
+    }
+
+    fn back_propagate(&mut self, error: Self::Output) -> Self::Input {
+        let flat_error = error.into_shape(self.rows*self.cols).unwrap();
+        let linear_error = self.params.linear.back_propagate(flat_error);
+        let mut prev_error = Array2::<f32>::zeros((self.rows,self.cols));
+        let multi_headed_error = linear_error.into_shape([self.num_heads,self.rows,self.cols]).unwrap();
+        for i in 0..self.num_heads {
+            let head_error = multi_headed_error.index_axis(Axis(0), i).to_owned();
+            let prev_head_error = self.params.heads[i].back_propagate(head_error);
+            prev_error = &prev_error + &prev_head_error;
+        }
+
+        prev_error
     }
 }

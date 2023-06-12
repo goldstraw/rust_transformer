@@ -43,6 +43,13 @@ impl SelfAttention {
 
 // Apply softmax normalisation to an Array1.
 fn normalise(mut x: ArrayViewMut1<f32>) {
+    let mut highest = 0.0;
+    for i in 0..x.len() {
+        if x[i] > highest {
+            highest = x[i];
+        }
+    }
+    x.mapv_inplace(|e| e - highest);
     x.mapv_inplace(f32::exp);
     let norm = x.sum();
     x.mapv_inplace(|e| e / norm);
@@ -72,7 +79,9 @@ impl Block for SelfAttention {
         }
 
         // Normalize each weight vector using softmax
-        weights.map_axis_mut(Axis(1), normalise);
+        for x in weights.axis_iter_mut(Axis(0)) {
+            normalise(x);
+        }
 
         // Generate output by calculating value vectors
         let mut output = Array2::<f32>::zeros((self.input.shape()[0], self.input.shape()[1]));
@@ -97,5 +106,9 @@ impl Block for SelfAttention {
         info!("Self-attention block output: \n {:?}", output);
 
         output
+    }
+
+    fn back_propagate(&mut self, error: Self::Output) -> Self::Input {
+        error
     }
 }

@@ -84,6 +84,7 @@ impl Block for Dense {
     }
 
     fn back_propagate(&mut self, error: Self::Output) -> Self::Input {
+        self.error[self.layer.len()-1] = error;
         for i in 0..self.layer.len()-1 {
             let index: usize = self.layer.len() - (i+2);
             for j in 0..self.layer[index].len() {
@@ -97,6 +98,6 @@ impl Block for Dense {
             }
         }
 
-        self.error[0]
+        self.error[0].clone()
     }
 }

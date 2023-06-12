@@ -32,7 +32,7 @@ impl Block for AddAndNorm {
         info!("Add and Norm block modified input: \n {:?}", self.modified_input);
 
         let mut output = &self.original_input + &self.modified_input;
-        for x in output.axis_iter_mut(Axis(0)) {
+        for mut x in output.axis_iter_mut(Axis(0)) {
             let sum_sq = x.mapv(|x| x*x).sum();
             let n = x.len();
             let mean = x.sum() / n as f32;

@@ -32,24 +32,17 @@ impl Block for PositionalEncoder {
         let mut positional_encodings = Array2::<f32>::zeros((self.input.shape()[0], self.dimensionality));
         for i in 0..self.input.shape()[0] {
             for j in 0..self.dimensionality {
-                let pos = i as f32;
-                let dim_model = self.dimensionality as f32;
-                let dim = j as f32;
-
-                let angle = pos / f32::powf(10000.0, 2.0 * dim / dim_model);
-
-                if j % 2 == 0 {
-                    positional_encodings[[i,j]] = angle.sin();
-                } else {
-                    positional_encodings[[i,j]] = angle.cos();
-                }
+                let angle = i as f32 / f32::powf(10000.0, 2.0 * j as f32 / self.dimensionality as f32);
+                positional_encodings[[i,j]] = if j % 2 == 0 { angle.sin() } else { angle.cos() };
             }
         }
 
         let output = &positional_encodings + &self.input;
-
         info!("Positional encoder block output: \n {:?}", output);
-
         output
+    }
+
+    fn back_propagate(&mut self, error: Self::Output) -> Self::Input {
+        error
     }
 }
