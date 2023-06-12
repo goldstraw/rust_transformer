@@ -1,4 +1,4 @@
-use ndarray::{Array2, Axis, ArrayViewMut1};
+use ndarray::{Array1, Array2, Axis, ArrayViewMut1};
 use crate::block::Block;
 use rand_distr::{Distribution, Normal};
 use log::info;
@@ -42,22 +42,18 @@ impl SelfAttention {
 }
 
 // Apply softmax normalisation to an Array1.
-fn normalise(mut x: ArrayViewMut1<f32>) -> ArrayViewMut1<f32> {
+fn normalise(mut x: ArrayViewMut1<f32>) {
     x.mapv_inplace(f32::exp);
     let norm = x.sum();
     x.mapv_inplace(|e| e / norm);
-    x
 }
 
 impl Block for SelfAttention {
     type Input = Array2<f32>;
     type Output = Array2<f32>;
 
-    fn set_block(&mut self, value: Self::Input) {
+    fn forward_propagate(&mut self, value: Self::Input) -> Self::Output {
         self.input = value;
-    }
-
-    fn forward_propagate(&mut self) -> Self::Output {
         info!("Self-attention block input: \n {:?}", self.input);
 
         // Generate context by finding weight vectors
@@ -76,7 +72,7 @@ impl Block for SelfAttention {
         }
 
         // Normalize each weight vector using softmax
-        weights.map_axis_mut(Axis(0), normalise);
+        weights.map_axis_mut(Axis(1), normalise);
 
         // Generate output by calculating value vectors
         let mut output = Array2::<f32>::zeros((self.input.shape()[0], self.input.shape()[1]));

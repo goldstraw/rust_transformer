@@ -45,18 +45,13 @@ impl Block for EncoderBlock {
     type Input = Array2<f32>;
     type Output = Array2<f32>;
 
-    fn set_block(&mut self, value: Self::Input) {
+    fn forward_propagate(&mut self, value: Self::Input) -> Self::Output {
         self.input = value;
-    }
-
-    fn forward_propagate(&mut self) -> Self::Output {
         info!("Encoder block input: \n {:?}", self.input);
 
-        self.params.multi_headed.set_block(self.input.clone());
-        let multi_out = self.params.multi_headed.forward_propagate();
+        let multi_out = self.params.multi_headed.forward_propagate(self.input.clone());
 
-        self.add_and_norm.set_block((self.input.clone(), multi_out));
-        let add_out = self.add_and_norm.forward_propagate();
+        let add_out = self.add_and_norm.forward_propagate((self.input.clone(), multi_out));
         let mut add_out_flat = Array1::<f32>::zeros(self.rows*self.cols);
         for j in 0..self.rows {
             for k in 0..self.cols {
@@ -64,12 +59,10 @@ impl Block for EncoderBlock {
             }
         }
 
-        self.params.feed_forward.set_block(add_out_flat);
-        let feed_out = self.params.feed_forward.forward_propagate();
+        let feed_out = self.params.feed_forward.forward_propagate(add_out_flat);
         let feed_out_sq = feed_out.into_shape([self.rows, self.cols]).unwrap();
 
-        self.add_and_norm.set_block((add_out, feed_out_sq));
-        let output = self.add_and_norm.forward_propagate();
+        let output = self.add_and_norm.forward_propagate((add_out, feed_out_sq));
 
         info!("Encoder block output: \n {:?}", output);
 

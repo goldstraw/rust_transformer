@@ -3,9 +3,9 @@ pub trait Block {
     type Input;
     type Output;
 
-    /// Sets the input of the block
-    fn set_block(&mut self, value: Self::Input);
-
     /// Forward propagates input through the block
-    fn forward_propagate(&mut self) -> Self::Output;
+    fn forward_propagate(&mut self, value: Self::Input) -> Self::Output;
+
+    /// Back propagates error through the block
+    fn back_propagate(&mut self, error: Self::Output) -> Self::Input;
 }

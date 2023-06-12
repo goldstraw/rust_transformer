@@ -43,11 +43,8 @@ impl Block for Encoder {
     type Input = Array1<String>;
     type Output = Array2<f32>;
 
-    fn set_block(&mut self, value: Self::Input) {
+    fn forward_propagate(&mut self, value: Self::Input) -> Self::Output {
         self.input = value;
-    }
-
-    fn forward_propagate(&mut self) -> Self::Output {
         info!("Encoder block input: \n {:?}", self.input);
 
         let mut embedded = Array2::<f32>::zeros((self.rows, self.cols));
@@ -58,12 +55,10 @@ impl Block for Encoder {
             }
         }
 
-        self.pos_encoder.set_block(embedded);
-        let mut output = self.pos_encoder.forward_propagate();
+        let mut output = self.pos_encoder.forward_propagate(embedded);
 
         for i in 0..self.params.encoder_blocks.len() {
-            self.params.encoder_blocks[i].set_block(output);
-            output = self.params.encoder_blocks[i].forward_propagate();
+            output = self.params.encoder_blocks[i].forward_propagate(output);
         }
 
         info!("Encoder block output: \n {:?}", output);

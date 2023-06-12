@@ -25,11 +25,8 @@ impl Block for PositionalEncoder {
     type Input = Array2<f32>;
     type Output = Array2<f32>;
 
-    fn set_block(&mut self, value: Self::Input) {
+    fn forward_propagate(&mut self, value: Self::Input) -> Self::Output {
         self.input = value;
-    }
-
-    fn forward_propagate(&mut self) -> Self::Output {
         info!("Positional encoder block input: \n {:?}", self.input);
 
         let mut positional_encodings = Array2::<f32>::zeros((self.input.shape()[0], self.dimensionality));

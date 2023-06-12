@@ -15,7 +15,7 @@ pub struct Dense {
     pub input_size: usize,
     linear: bool,
     layer: Vec<Array1::<f32>>,
-    _error: Vec<Array1::<f32>>,
+    error: Vec<Array1::<f32>>,
     params: DenseParams,
 }
 
@@ -53,7 +53,7 @@ impl Dense {
             input_size: layer_sizes[0],
             linear,
             layer,
-            _error: error,
+            error,
             params
         };
 
@@ -65,11 +65,8 @@ impl Block for Dense {
     type Input = Array1<f32>;
     type Output = Array1<f32>;
 
-    fn set_block(&mut self, value: Self::Input) {
+    fn forward_propagate(&mut self, value: Self::Input) -> Self::Output {
         self.input = value;
-    }
-
-    fn forward_propagate(&mut self) -> Self::Output {
         info!("Dense block input: \n {:?}", self.input);
 
         self.layer[0].assign(&self.input);
@@ -84,5 +81,22 @@ impl Block for Dense {
         info!("Dense block output: \n {:?}", self.layer[self.layer.len()-1]);
 
         self.layer[self.layer.len()-1].clone()
+    }
+
+    fn back_propagate(&mut self, error: Self::Output) -> Self::Input {
+        for i in 0..self.layer.len()-1 {
+            let index: usize = self.layer.len() - (i+2);
+            for j in 0..self.layer[index].len() {
+                self.error[index][j] = 0.0;
+                for k in 0..self.layer[index+1].len() {
+                    let next_error: f32 = self.error[index+1][k];
+                    self.error[index][j] += self.params.weights[index][[j,k]] * next_error;
+                    self.params.weights[index][[j,k]] += self.layer[index][j] * next_error;
+                }
+                self.params.biases[index][j] -= self.error[index][j];
+            }
+        }
+
+        self.error[0]
     }
 }
