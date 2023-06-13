@@ -1,4 +1,4 @@
-use ndarray::{Array1, Array2, Axis, ArrayViewMut1};
+use ndarray::{Array2, Array3, Axis, ArrayViewMut1};
 use crate::block::Block;
 use rand_distr::{Distribution, Normal};
 use log::info;
@@ -13,6 +13,10 @@ pub struct SelfAttentionParams {
 // Defines self-attention struct
 pub struct SelfAttention {
     input: Array2::<f32>,
+    weights: Array2::<f32>,
+    value_vecs: Array2::<f32>,
+    vec_key_matrix: Array3::<f32>,
+    vec_query_matrix: Array3::<f32>,
     params: SelfAttentionParams,
 }
 
@@ -30,10 +34,20 @@ impl SelfAttention {
         query.mapv_inplace(|_| normal.sample(&mut rand::thread_rng()));
         value.mapv_inplace(|_| normal.sample(&mut rand::thread_rng()));
 
+        // Store intermediary calculations for use in back-propagation
+        let weights = Array2::<f32>::zeros((input.shape()[0], input.shape()[1]));
+        let value_vecs = Array2::<f32>::zeros((input.shape()[0], input.shape()[1]));
+        let vec_key_matrix = Array3::<f32>::zeros((input.shape()[0], input.shape()[0], input.shape()[1]));
+        let vec_query_matrix = Array3::<f32>::zeros((input.shape()[0], input.shape()[0], input.shape()[1]));
+
         let params = SelfAttentionParams { key, query, value };
 
         let block: SelfAttention = SelfAttention {
             input,
+            weights,
+            value_vecs,
+            vec_key_matrix,
+            vec_query_matrix,
             params
         };
 
@@ -64,7 +78,7 @@ impl Block for SelfAttention {
         info!("Self-attention block input: \n {:?}", self.input);
 
         // Generate context by finding weight vectors
-        let mut weights = Array2::<f32>::zeros((self.input.shape()[0], self.input.shape()[1]));
+        self.weights = Array2::<f32>::zeros((self.input.shape()[0], self.input.shape()[1]));
 
         for i in 0..self.input.shape()[0] {
             for j in 0..self.input.shape()[0] {
@@ -74,12 +88,17 @@ impl Block for SelfAttention {
                 let vec_query = vec_i.dot(&self.params.query);
                 let vec_j = &self.input.index_axis(Axis(0), j);
                 let vec_key = &vec_j.dot(&self.params.key);
-                weights[[i,j]] = vec_query.dot(vec_key);
+                // Store intermediary values for use in back propagation
+                for k in 0..self.input.shape()[1] {
+                    self.vec_key_matrix[[i,j,k]] = vec_key[k];
+                    self.vec_query_matrix[[i,j,k]] = vec_query[k];
+                }
+                self.weights[[i,j]] = vec_query.dot(vec_key);
             }
         }
 
         // Normalize each weight vector using softmax
-        for x in weights.axis_iter_mut(Axis(0)) {
+        for x in self.weights.axis_iter_mut(Axis(0)) {
             normalise(x);
         }
 
@@ -87,18 +106,18 @@ impl Block for SelfAttention {
         let mut output = Array2::<f32>::zeros((self.input.shape()[0], self.input.shape()[1]));
 
         // Apply value matrix to each vector before its use
-        let mut value_vecs = Array2::<f32>::zeros((self.input.shape()[0], self.input.shape()[1]));
+        self.value_vecs = Array2::<f32>::zeros((self.input.shape()[0], self.input.shape()[1]));
         for i in 0..self.input.shape()[0] {
             let vec_i = self.input.index_axis(Axis(0), i);
             // Multiply each vector inputs by value matrix
             let vec_value = vec_i.dot(&self.params.value);
-            value_vecs.row_mut(i).assign(&vec_value);
+            self.value_vecs.row_mut(i).assign(&vec_value);
         }
 
         for i in 0..self.input.shape()[0] {
             for j in 0..self.input.shape()[1] {
                 for k in 0..self.input.shape()[0] {
-                    output[[i,j]] += value_vecs[[k,j]] * weights[[i,k]];
+                    output[[i,j]] += self.value_vecs[[k,j]] * self.weights[[i,k]];
                 }
             }
         }
@@ -109,6 +128,58 @@ impl Block for SelfAttention {
     }
 
     fn back_propagate(&mut self, error: Self::Output) -> Self::Input {
-        error
+        let mut value_error = Array2::<f32>::zeros((self.input.shape()[0], self.input.shape()[1]));
+        for j in 0..self.input.shape()[1] {
+            for k in 0..self.input.shape()[0] {
+                for i in 0..self.input.shape()[0] {
+                    value_error[[k,j]] += error[[i,j]] * self.weights[[i,k]];
+                }
+                for l in 0..self.input.shape()[1] {
+                    self.params.value[[l,j]] -= value_error[[k,j]] * self.input.index_axis(Axis(0), k)[l];
+                }
+            }
+        }
+
+        let mut weight_rate = Array2::<f32>::zeros((self.input.shape()[0], self.input.shape()[1]));
+        for i in 0..self.input.shape()[0] {
+            for j in 0..self.input.shape()[0] {
+                for k in 0..self.input.shape()[1] {
+                    weight_rate[[i,j]] += error[[i,k]] * self.value_vecs[[j,k]];
+                }
+            }
+        }
+
+        let mut prev_error = Array2::<f32>::zeros((self.input.shape()[0], self.input.shape()[1]));
+        let mut unnormalised_error = Array2::<f32>::zeros((self.input.shape()[0], self.input.shape()[1]));
+        let unchanged_key = self.params.key.clone();
+        let unchanged_query = self.params.query.clone();
+        for i in 0..self.input.shape()[0] {
+            for j in 0..self.input.shape()[0] {
+                for k in 0..self.input.shape()[0] {
+                    if j == k {
+                        // Calculate rate of change of output with respect to input
+                        let output_rate = self.weights[[i,j]] * (1.0 - self.weights[[i,j]]);
+                        unnormalised_error[[i,j]] += output_rate * weight_rate[[i,j]];
+                    } else {
+                        let output_rate = - self.weights[[i,j]] * self.weights[[i,k]];
+                        unnormalised_error[[i,j]] += output_rate * weight_rate[[i,j]];
+                    }
+                }
+
+                for k in 0..self.input.shape()[1] {
+                    let key_rate = self.vec_query_matrix[[i,j,k]] * unnormalised_error[[i,j]];
+                    let query_rate = self.vec_key_matrix[[i,j,k]] * unnormalised_error[[i,j]];
+                    for l in 0..self.input.shape()[1] {
+                        self.params.key[[l,k]] -= key_rate * self.input[[i,l]];
+                        self.params.query[[l,k]] -= query_rate * self.input[[i,l]];
+
+                        prev_error[[i,l]] += key_rate * unchanged_key[[l,k]];
+                        prev_error[[i,l]] += query_rate * unchanged_query[[l,k]];
+                    }
+                }
+            }
+        }
+
+        prev_error
     }
 }

@@ -31,7 +31,7 @@ impl Transformer {
         let params = TransformerParams { encoder_blocks };
         let pos_encoder = PositionalEncoder::new(rows, cols);
         let mean_pool = MeanPooling::new(rows, cols);
-        let classification = Dense::new(arr1(&[cols, cols/4, 1]), false, true);
+        let classification = Dense::new(arr1(&[cols, cols/4 + 1, 1]), false, true);
         let block: Transformer = Transformer {
             input: Array1::from_shape_fn(rows, |_| "".to_string()),
             rows,
@@ -55,14 +55,7 @@ impl Block for Transformer {
         self.input = value;
         info!("Transformer block input: \n {:?}", self.input);
 
-        let mut embedded = Array2::<f32>::zeros((self.rows, self.cols));
-        for i in 0..self.rows {
-            let vec = self.embedding[&self.input[i]].clone();
-            for j in 0..self.cols {
-                embedded[[i,j]] = vec[j];
-            }
-        }
-
+        let embedded = Array2::<f32>::from_shape_fn((self.rows, self.cols), |(i, j)| self.embedding[&self.input[i]][j]);
         let mut enc_output = self.pos_encoder.forward_propagate(embedded);
 
         for i in 0..self.params.encoder_blocks.len() {
