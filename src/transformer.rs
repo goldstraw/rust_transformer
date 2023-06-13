@@ -1,7 +1,7 @@
 use ndarray::{Array1, Array2, arr1};
 use std::collections::HashMap;
 use crate::block::Block;
-use crate::dense::Dense;
+use crate::dense::{Dense, inv_deriv_sigmoid};
 use crate::encoder_block::EncoderBlock;
 use crate::mean_pooling::MeanPooling;
 use crate::positional_encoder::PositionalEncoder;
@@ -15,6 +15,7 @@ pub struct TransformerParams {
 // Defines multi-headed attention struct
 pub struct Transformer {
     input: Array1::<String>,
+    output: f32,
     rows: usize,
     cols: usize,
     pos_encoder: PositionalEncoder,
@@ -34,6 +35,7 @@ impl Transformer {
         let classification = Dense::new(arr1(&[cols, cols/4 + 1, 1]), false, true);
         let block: Transformer = Transformer {
             input: Array1::from_shape_fn(rows, |_| "".to_string()),
+            output: 0.0,
             rows,
             cols,
             pos_encoder,
@@ -63,15 +65,17 @@ impl Block for Transformer {
         }
 
         let pooled_output = self.mean_pool.forward_propagate(enc_output);
-        let output = self.classification.forward_propagate(pooled_output)[0];
+        self.output = self.classification.forward_propagate(pooled_output)[0];
 
-        info!("Transformer block output: \n {:?}", output);
+        info!("Transformer block output: \n {:?}", self.output);
 
-        output
+        self.output
     }
 
+    /// Rather than giving an error here, input a desired value.
     fn back_propagate(&mut self, error: Self::Output) -> Self::Input {
-        let classification_error = self.classification.back_propagate(arr1(&[error]));
+        let last_layer_error = 2.0 * (self.output - error) * inv_deriv_sigmoid(self.output);
+        let classification_error = self.classification.back_propagate(arr1(&[last_layer_error]));
         let pool_error = self.mean_pool.back_propagate(classification_error);
 
         let mut encoder_error = pool_error;

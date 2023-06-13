@@ -111,7 +111,7 @@ impl Block for Dense {
                     self.error[index][j] += self.params.weights[index][[j,k]] * next_error;
                     self.params.weights[index][[j,k]] -= self.layer[index][j] * next_error;
                 }
-                // The first layer did not have an activation function applied
+                // The first layer did not have an activation function nor biases
                 if index > 0 {
                     // Apply the derivative of the relevant activation function
                     if self.classifier {
@@ -119,8 +119,8 @@ impl Block for Dense {
                     } else if self.layer[index][j] <= 0.0 {
                         self.error[index][j] = 0.0;
                     }
+                    self.params.biases[index][j] -= self.error[index][j];
                 }
-                self.params.biases[index][j] -= self.error[index][j];
             }
         }
 
