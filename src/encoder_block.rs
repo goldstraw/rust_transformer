@@ -25,7 +25,7 @@ impl EncoderBlock {
     pub fn new(rows: usize, cols: usize, num_heads: usize, layer_sizes: Array1<usize>) -> EncoderBlock {
         let multi_headed = MultiHeadedAttention::new(num_heads, rows, cols);
         let add_and_norm = AddAndNorm::new(rows, cols);
-        let feed_forward = Dense::new(layer_sizes, false);
+        let feed_forward = Dense::new(layer_sizes, false, false);
 
         let params = EncoderBlockParams { multi_headed, feed_forward };
 
@@ -52,12 +52,7 @@ impl Block for EncoderBlock {
         let multi_out = self.params.multi_headed.forward_propagate(self.input.clone());
 
         let add_out = self.add_and_norm.forward_propagate((self.input.clone(), multi_out));
-        let mut add_out_flat = Array1::<f32>::zeros(self.rows*self.cols);
-        for j in 0..self.rows {
-            for k in 0..self.cols {
-                add_out_flat[j*self.cols + k] = add_out[[j,k]];
-            }
-        }
+        let add_out_flat = add_out.clone().into_shape(self.rows*self.cols).unwrap();
 
         let feed_out = self.params.feed_forward.forward_propagate(add_out_flat);
         let feed_out_sq = feed_out.into_shape([self.rows, self.cols]).unwrap();
@@ -70,6 +65,15 @@ impl Block for EncoderBlock {
     }
 
     fn back_propagate(&mut self, error: Self::Output) -> Self::Input {
-        error
+        let norm_error = self.add_and_norm.back_propagate(error);
+        let flat_error = norm_error.1.into_shape(self.rows*self.cols).unwrap();
+        let feed_flat_error = self.params.feed_forward.back_propagate(flat_error);
+        let feed_error = feed_flat_error.into_shape([self.rows,self.cols]).unwrap();
+        let residual_error = &norm_error.0 + &feed_error;
+        let norm_error2 = self.add_and_norm.back_propagate(residual_error);
+        let multi_headed_error = self.params.multi_headed.back_propagate(norm_error2.1);
+        let prev_error = &norm_error2.0 + &multi_headed_error;
+
+        prev_error
     }
 }

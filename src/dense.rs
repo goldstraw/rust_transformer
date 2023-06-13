@@ -14,6 +14,7 @@ pub struct Dense {
     input: Array1::<f32>,
     pub input_size: usize,
     linear: bool,
+    classifier: bool,
     layer: Vec<Array1::<f32>>,
     error: Vec<Array1::<f32>>,
     params: DenseParams,
@@ -21,7 +22,7 @@ pub struct Dense {
 
 impl Dense {
     /// Create a new self-attention block with the given parameters
-    pub fn new(layer_sizes: Array1<usize>, linear: bool) -> Dense {
+    pub fn new(layer_sizes: Array1<usize>, linear: bool, classifier: bool) -> Dense {
         let input = Array1::<f32>::zeros(layer_sizes[0]);
         let mut layer = vec![];
         let mut error = vec![];
@@ -52,6 +53,7 @@ impl Dense {
             input,
             input_size: layer_sizes[0],
             linear,
+            classifier,
             layer,
             error,
             params
@@ -59,6 +61,17 @@ impl Dense {
 
         block
     }
+}
+
+/// Sigmoid activation function
+pub fn sigmoid(x: f32) -> f32 {
+    1.0 / (1.0 + (-x).exp())
+}
+
+/// Inverse derivative of the sigmoid function
+pub fn inv_deriv_sigmoid(x: f32) -> f32 {
+    let z: f32 = (x / (1.0 - x)).ln();
+    sigmoid(z) * (1.0 - sigmoid(z))
 }
 
 impl Block for Dense {
@@ -74,7 +87,11 @@ impl Block for Dense {
             let weighted_sum = &self.layer[i - 1].dot(&self.params.weights[i - 1]);
             self.layer[i] = weighted_sum + &self.params.biases[i];
             if !self.linear {
-                self.layer[i].mapv_inplace(|x| if x > 0.0 { x } else { 0.0 });
+                if self.classifier {
+                    self.layer[i].mapv_inplace(sigmoid);
+                } else {
+                    self.layer[i].mapv_inplace(|x| if x > 0.0 { x } else { 0.0 });
+                }
             }
         }
 
@@ -92,7 +109,16 @@ impl Block for Dense {
                 for k in 0..self.layer[index+1].len() {
                     let next_error: f32 = self.error[index+1][k];
                     self.error[index][j] += self.params.weights[index][[j,k]] * next_error;
-                    self.params.weights[index][[j,k]] += self.layer[index][j] * next_error;
+                    self.params.weights[index][[j,k]] -= self.layer[index][j] * next_error;
+                }
+                // The first layer did not have an activation function applied
+                if index > 0 {
+                    // Apply the derivative of the relevant activation function
+                    if self.classifier {
+                        self.error[index][j] *= inv_deriv_sigmoid(self.layer[index][j]);
+                    } else if self.layer[index][j] <= 0.0 {
+                        self.error[index][j] = 0.0;
+                    }
                 }
                 self.params.biases[index][j] -= self.error[index][j];
             }

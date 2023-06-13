@@ -7,7 +7,7 @@ use crate::self_attention::SelfAttention;
 use crate::multi_headed_attention::MultiHeadedAttention;
 use crate::dense::Dense;
 use crate::add_and_norm::AddAndNorm;
-use crate::encoder::Encoder;
+use crate::transformer::Transformer;
 
 pub fn run() {
     let word_embeddings = load_embeddings("word_embeddings.json");
@@ -35,6 +35,6 @@ pub fn run() {
     // p.set_block(arr2(&[[0.0,0.0,0.0,0.0], [0.0,0.0,0.0,0.0], [0.0,0.0,0.0,0.0]]));
     // p.forward_propagate();
 
-    let mut e = Encoder::new(3, 3, 3, arr1(&[9,400,9]), word_embeddings);
+    let mut e = Transformer::new(3, 3, 3, arr1(&[9,400,9]), word_embeddings);
     e.forward_propagate(arr1(&["movie".to_string(), "good".to_string(), "bad".to_string()]));
 }

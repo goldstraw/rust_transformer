@@ -1,16 +1,16 @@
 [package]
-name = "transformer"
+name = "rusttransformer"
 version = "0.1.0"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [lib]
-name = "transformer"
+name = "rusttransformer"
 path = "src/lib.rs"
 
 [[bin]]
-name = "transformer"
+name = "rusttransformer"
 path = "src/main.rs"
 
 [dependencies]

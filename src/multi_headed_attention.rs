@@ -23,7 +23,7 @@ impl MultiHeadedAttention {
     /// Create a new self-attention block with the given parameters
     pub fn new(num_heads: usize, rows: usize, cols: usize) -> MultiHeadedAttention {
         let heads: Array1<SelfAttention> = Array1::from_shape_fn(num_heads, |_| SelfAttention::new(rows, cols));
-        let linear: Dense = Dense::new(arr1(&[rows*cols*num_heads, rows*cols]), true);
+        let linear: Dense = Dense::new(arr1(&[rows*cols*num_heads, rows*cols]), true, false);
 
         let params = MultiHeadedAttentionParams { heads, linear };
 
