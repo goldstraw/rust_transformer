@@ -1,4 +1,5 @@
 pub const VERBOSE: bool = true;
+pub const LR: f32 = 0.00001;
 
 pub mod run;
 pub mod logger;

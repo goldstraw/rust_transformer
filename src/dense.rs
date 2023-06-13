@@ -1,5 +1,6 @@
 use ndarray::{Array1, Array2};
 use crate::block::Block;
+use crate::LR;
 use rand_distr::{Distribution, Normal};
 use log::info;
 
@@ -109,7 +110,7 @@ impl Block for Dense {
                 for k in 0..self.layer[index+1].len() {
                     let next_error: f32 = self.error[index+1][k];
                     self.error[index][j] += self.params.weights[index][[j,k]] * next_error;
-                    self.params.weights[index][[j,k]] -= self.layer[index][j] * next_error;
+                    self.params.weights[index][[j,k]] -= self.layer[index][j] * next_error * LR;
                 }
                 // The first layer did not have an activation function nor biases
                 if index > 0 {
@@ -119,7 +120,7 @@ impl Block for Dense {
                     } else if self.layer[index][j] <= 0.0 {
                         self.error[index][j] = 0.0;
                     }
-                    self.params.biases[index][j] -= self.error[index][j];
+                    self.params.biases[index][j] -= self.error[index][j] * LR;
                 }
             }
         }

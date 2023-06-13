@@ -1,5 +1,6 @@
 use ndarray::{Array2, Array3, Axis, ArrayViewMut1};
 use crate::block::Block;
+use crate::LR;
 use rand_distr::{Distribution, Normal};
 use log::info;
 
@@ -135,7 +136,7 @@ impl Block for SelfAttention {
                     value_error[[k,j]] += error[[i,j]] * self.weights[[i,k]];
                 }
                 for l in 0..self.input.shape()[1] {
-                    self.params.value[[l,j]] -= value_error[[k,j]] * self.input.index_axis(Axis(0), k)[l];
+                    self.params.value[[l,j]] -= value_error[[k,j]] * self.input.index_axis(Axis(0), k)[l] * LR;
                 }
             }
         }
@@ -170,8 +171,8 @@ impl Block for SelfAttention {
                     let key_rate = self.vec_query_matrix[[i,j,k]] * unnormalised_error[[i,j]];
                     let query_rate = self.vec_key_matrix[[i,j,k]] * unnormalised_error[[i,j]];
                     for l in 0..self.input.shape()[1] {
-                        self.params.key[[l,k]] -= key_rate * self.input[[i,l]];
-                        self.params.query[[l,k]] -= query_rate * self.input[[i,l]];
+                        self.params.key[[l,k]] -= key_rate * self.input[[i,l]] * LR;
+                        self.params.query[[l,k]] -= query_rate * self.input[[i,l]] * LR;
 
                         prev_error[[i,l]] += key_rate * unchanged_key[[l,k]];
                         prev_error[[i,l]] += query_rate * unchanged_query[[l,k]];
