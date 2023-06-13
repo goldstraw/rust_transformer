@@ -2,7 +2,6 @@ use ndarray::{arr1, Array1, Array2, Axis};
 use crate::block::Block;
 use crate::self_attention::SelfAttention;
 use crate::dense::Dense;
-use log::info;
 
 // Defines attention heads and dense layer.
 pub struct MultiHeadedAttentionParams {
@@ -45,7 +44,6 @@ impl Block for MultiHeadedAttention {
 
     fn forward_propagate(&mut self, value: Self::Input) -> Self::Output {
         self.input = value;
-        info!("Multi-headed attention block input: \n {:?}", self.input);
 
         let mut concat_heads = Array1::<f32>::zeros(self.params.linear.input_size);
         let mut concat_index = 0;
@@ -60,8 +58,6 @@ impl Block for MultiHeadedAttention {
         }
 
         let output = self.params.linear.forward_propagate(concat_heads);
-
-        info!("Multi-headed attention block output: \n {:?}", output);
 
         output.into_shape([self.input.shape()[0], self.input.shape()[1]]).unwrap()
     }

@@ -3,7 +3,6 @@ use crate::add_and_norm::AddAndNorm;
 use crate::block::Block;
 use crate::multi_headed_attention::MultiHeadedAttention;
 use crate::dense::Dense;
-use log::info;
 
 // Defines multi headed attention and feed forward blocks.
 pub struct EncoderBlockParams {
@@ -47,7 +46,6 @@ impl Block for EncoderBlock {
 
     fn forward_propagate(&mut self, value: Self::Input) -> Self::Output {
         self.input = value;
-        info!("Encoder block input: \n {:?}", self.input);
 
         let multi_out = self.params.multi_headed.forward_propagate(self.input.clone());
 
@@ -58,8 +56,6 @@ impl Block for EncoderBlock {
         let feed_out_sq = feed_out.into_shape([self.rows, self.cols]).unwrap();
 
         let output = self.add_and_norm.forward_propagate((add_out, feed_out_sq));
-
-        info!("Encoder block output: \n {:?}", output);
 
         output
     }

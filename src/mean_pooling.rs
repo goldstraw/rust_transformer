@@ -1,6 +1,5 @@
 use ndarray::{Axis, Array1, Array2};
 use crate::block::Block;
-use log::info;
 
 // Defines a mean pooling struct
 pub struct MeanPooling {
@@ -23,9 +22,7 @@ impl Block for MeanPooling {
 
     fn forward_propagate(&mut self, value: Self::Input) -> Self::Output {
         self.input = value;
-        info!("Mean pooling block unmodified input: \n {:?}", self.input);
         let output = self.input.mean_axis(Axis(0)).unwrap();
-        info!("Mean pooling block output: \n {:?}", output);
 
         output
     }

@@ -5,7 +5,6 @@ use crate::dense::{Dense, inv_deriv_sigmoid};
 use crate::encoder_block::EncoderBlock;
 use crate::mean_pooling::MeanPooling;
 use crate::positional_encoder::PositionalEncoder;
-use log::info;
 
 // Defines attention heads and dense layer.
 pub struct TransformerParams {
@@ -16,8 +15,8 @@ pub struct TransformerParams {
 pub struct Transformer {
     input: Array1::<String>,
     output: f32,
-    rows: usize,
-    cols: usize,
+    num_words: usize,
+    dimensionality: usize,
     pos_encoder: PositionalEncoder,
     mean_pool: MeanPooling,
     classification: Dense,
@@ -27,17 +26,17 @@ pub struct Transformer {
 
 impl Transformer {
     /// Create a new self-attention block with the given parameters
-    pub fn new(rows: usize, cols: usize, num_heads: usize, layer_sizes: Array1<usize>, embedding: HashMap<String, Vec<f32>>) -> Transformer {
-        let encoder_blocks = Array1::from_shape_fn(num_heads, |_| EncoderBlock::new(rows, cols, num_heads, layer_sizes.clone()));
+    pub fn new(num_words: usize, dimensionality: usize, num_encoders: usize, num_heads: usize, layer_sizes: Array1<usize>, embedding: HashMap<String, Vec<f32>>) -> Transformer {
+        let encoder_blocks = Array1::from_shape_fn(num_encoders, |_| EncoderBlock::new(num_words, dimensionality, num_heads, layer_sizes.clone()));
         let params = TransformerParams { encoder_blocks };
-        let pos_encoder = PositionalEncoder::new(rows, cols);
-        let mean_pool = MeanPooling::new(rows, cols);
-        let classification = Dense::new(arr1(&[cols, cols/4 + 1, 1]), false, true);
+        let pos_encoder = PositionalEncoder::new(num_words, dimensionality);
+        let mean_pool = MeanPooling::new(num_words, dimensionality);
+        let classification = Dense::new(arr1(&[dimensionality, dimensionality/4 + 1, 1]), false, true);
         let block: Transformer = Transformer {
-            input: Array1::from_shape_fn(rows, |_| "".to_string()),
+            input: Array1::from_shape_fn(num_words, |_| "".to_string()),
             output: 0.0,
-            rows,
-            cols,
+            num_words,
+            dimensionality,
             pos_encoder,
             mean_pool,
             classification,
@@ -55,9 +54,7 @@ impl Block for Transformer {
 
     fn forward_propagate(&mut self, value: Self::Input) -> Self::Output {
         self.input = value;
-        info!("Transformer block input: \n {:?}", self.input);
-
-        let embedded = Array2::<f32>::from_shape_fn((self.rows, self.cols), |(i, j)| self.embedding[&self.input[i]][j]);
+        let embedded = Array2::<f32>::from_shape_fn((self.num_words, self.dimensionality), |(i, j)| self.embedding[&self.input[i]][j]);
         let mut enc_output = self.pos_encoder.forward_propagate(embedded);
 
         for i in 0..self.params.encoder_blocks.len() {
@@ -66,8 +63,6 @@ impl Block for Transformer {
 
         let pooled_output = self.mean_pool.forward_propagate(enc_output);
         self.output = self.classification.forward_propagate(pooled_output)[0];
-
-        info!("Transformer block output: \n {:?}", self.output);
 
         self.output
     }

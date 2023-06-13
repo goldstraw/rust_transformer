@@ -2,7 +2,6 @@ use ndarray::{Array2, Array3, Axis, ArrayViewMut1};
 use crate::block::Block;
 use crate::LR;
 use rand_distr::{Distribution, Normal};
-use log::info;
 
 // Defines struct for storing key, query, and value matrices
 pub struct SelfAttentionParams {
@@ -76,7 +75,6 @@ impl Block for SelfAttention {
 
     fn forward_propagate(&mut self, value: Self::Input) -> Self::Output {
         self.input = value;
-        info!("Self-attention block input: \n {:?}", self.input);
 
         // Generate context by finding weight vectors
         self.weights = Array2::<f32>::zeros((self.input.shape()[0], self.input.shape()[1]));
@@ -122,8 +120,6 @@ impl Block for SelfAttention {
                 }
             }
         }
-
-        info!("Self-attention block output: \n {:?}", output);
 
         output
     }

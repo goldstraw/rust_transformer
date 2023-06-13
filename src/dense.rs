@@ -2,7 +2,6 @@ use ndarray::{Array1, Array2};
 use crate::block::Block;
 use crate::LR;
 use rand_distr::{Distribution, Normal};
-use log::info;
 
 // Defines struct for storing dense parameters
 pub struct DenseParams {
@@ -81,7 +80,6 @@ impl Block for Dense {
 
     fn forward_propagate(&mut self, value: Self::Input) -> Self::Output {
         self.input = value;
-        info!("Dense block input: \n {:?}", self.input);
 
         self.layer[0].assign(&self.input);
         for i in 1..self.layer.len() {
@@ -95,8 +93,6 @@ impl Block for Dense {
                 }
             }
         }
-
-        info!("Dense block output: \n {:?}", self.layer[self.layer.len()-1]);
 
         self.layer[self.layer.len()-1].clone()
     }

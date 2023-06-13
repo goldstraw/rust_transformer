@@ -1,6 +1,5 @@
 use ndarray::{Axis,Array2};
 use crate::block::Block;
-use log::info;
 
 // Defines an add and norm struct
 pub struct AddAndNorm {
@@ -28,8 +27,6 @@ impl Block for AddAndNorm {
     fn forward_propagate(&mut self, value: Self::Input) -> Self::Output {
         self.original_input = value.0;
         self.modified_input = value.1;
-        info!("Add and Norm block unmodified input: \n {:?}", self.original_input);
-        info!("Add and Norm block modified input: \n {:?}", self.modified_input);
 
         let mut output = &self.original_input + &self.modified_input;
         for mut x in output.axis_iter_mut(Axis(0)) {
@@ -41,8 +38,6 @@ impl Block for AddAndNorm {
 
             x.mapv_inplace(|y| (y - mean) / stdev);
         }
-
-        info!("Add and Norm block output: \n {:?}", output);
 
         output
     }

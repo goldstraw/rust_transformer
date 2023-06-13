@@ -1,6 +1,5 @@
 use ndarray::Array2;
 use crate::block::Block;
-use log::info;
 
 // Defines an add and norm struct
 pub struct PositionalEncoder {
@@ -27,7 +26,6 @@ impl Block for PositionalEncoder {
 
     fn forward_propagate(&mut self, value: Self::Input) -> Self::Output {
         self.input = value;
-        info!("Positional encoder block input: \n {:?}", self.input);
 
         let mut positional_encodings = Array2::<f32>::zeros((self.input.shape()[0], self.dimensionality));
         for i in 0..self.input.shape()[0] {
@@ -38,7 +36,6 @@ impl Block for PositionalEncoder {
         }
 
         let output = &positional_encodings + &self.input;
-        info!("Positional encoder block output: \n {:?}", output);
         output
     }
 
