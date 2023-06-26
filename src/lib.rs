@@ -1,5 +1,5 @@
 pub const VERBOSE: bool = true;
-pub const LR: f32 = 0.01;
+pub const LR: f32 = 0.001;
 
 pub mod run;
 pub mod logger;
@@ -12,5 +12,4 @@ pub mod multi_headed_attention;
 pub mod add_and_norm;
 pub mod encoder_block;
 pub mod positional_encoder;
-pub mod mean_pooling;
 pub mod transformer;
