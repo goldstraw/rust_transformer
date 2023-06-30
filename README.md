@@ -5,7 +5,6 @@ This repository contains a Rust implementation of a transformer built from scrat
 ## Overview
 
 This project implements an encoder-only transformer, built without any external machine learning libraries. The transformer uses word embeddings generated from my [WordEmbeddings repository](https://github.com/goldstraw/WordEmbeddings) to encode words. Sample word embeddings are included in the repository.
-```
 
 ## Usage
 
