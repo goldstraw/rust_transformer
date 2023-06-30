@@ -21,7 +21,9 @@ This command will train the transformer on the movie review dataset and then run
 ## Further Reading
 
 Original paper: [Convolutional Neural Networks for Sentence Classification](https://arxiv.org/abs/1408.5882)
+
 Original paper for dataset: [Learning Word Vectors for Sentiment Analysis](http://www.aclweb.org/anthology/P11-1015)
+
 For more information about this project, read [my blog post on transformers](https://charliegoldstraw.com/articles/transformers/).
 
 ## License
