@@ -45,34 +45,59 @@ impl Block for MultiHeadedAttention {
     fn forward_propagate(&mut self, value: Self::Input) -> Self::Output {
         self.input = value;
 
+        // Initialize an array to store the concatenated outputs from different heads
         let mut concat_heads = Array1::<f32>::zeros(self.params.linear.input_size);
+    
+        // Variable to keep track of the current index in the concatenated heads array
         let mut concat_index = 0;
+    
+        // Iterate through each head in the model's parameters
         for i in 0..self.params.heads.len() {
+            // Forward propagate the input through the current head
             let head = self.params.heads[i].forward_propagate(self.input.clone());
+    
+            // Flatten the head output and concatenate it to the concat_heads array
             for j in 0..self.input.shape()[0] {
                 for k in 0..self.input.shape()[1] {
-                    concat_heads[concat_index] = head[[j,k]];
+                    concat_heads[concat_index] = head[[j, k]];
                     concat_index += 1;
                 }
             }
         }
 
+        // Forward propagate the concatenated heads through the linear layer
         let output = self.params.linear.forward_propagate(concat_heads);
 
+        // Reshape the output to match the shape of the input
         output.into_shape([self.input.shape()[0], self.input.shape()[1]]).unwrap()
     }
 
     fn back_propagate(&mut self, error: Self::Output) -> Self::Input {
+        // Flatten the error tensor into a 1D array
         let flat_error = error.into_shape(self.rows*self.cols).unwrap();
+
+        // Backpropagate the flat error through the linear layer
         let linear_error = self.params.linear.back_propagate(flat_error);
+
+        // Initialize an empty array to store the accumulated error from all heads
         let mut prev_error = Array2::<f32>::zeros((self.rows,self.cols));
+
+        // Reshape the linear error into a multi-headed error tensor
         let multi_headed_error = linear_error.into_shape([self.num_heads,self.rows,self.cols]).unwrap();
+
+        // Iterate over each head and backpropagate the error
         for i in 0..self.num_heads {
+            // Extract the error for the current head
             let head_error = multi_headed_error.index_axis(Axis(0), i).to_owned();
+
+            // Backpropagate the head error through the head layer
             let prev_head_error = self.params.heads[i].back_propagate(head_error);
+
+            // Accumulate the previous head error with the overall previous error
             prev_error = &prev_error + &prev_head_error;
         }
 
+        // Return the accumulated previous error
         prev_error
     }
 }

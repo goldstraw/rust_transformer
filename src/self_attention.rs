@@ -56,17 +56,20 @@ impl SelfAttention {
 }
 
 // Apply softmax normalisation to an Array1.
-fn normalise(mut x: ArrayViewMut1<f32>) {
+fn softmax(mut x: ArrayViewMut1<f32>) {
+    // Iterate through the elements of the array to find the highest value.
     let mut highest = 0.0;
     for i in 0..x.len() {
         if x[i] > highest {
             highest = x[i];
         }
     }
-    x.mapv_inplace(|e| e - highest);
-    x.mapv_inplace(f32::exp);
-    let norm = x.sum();
-    x.mapv_inplace(|e| e / norm);
+    x.mapv_inplace(|e| e - highest); // Subtract the highest value from each element in the array.
+    x.mapv_inplace(f32::exp); // Apply the exponential function to each element in the array.
+
+    let norm = x.sum(); // Compute the sum of all elements in the array.
+
+    x.mapv_inplace(|e| e / norm); // Divide each element by the sum to normalize the array.
 }
 
 impl Block for SelfAttention {
@@ -98,7 +101,7 @@ impl Block for SelfAttention {
 
         // Normalize each weight vector using softmax
         for x in self.weights.axis_iter_mut(Axis(0)) {
-            normalise(x);
+            softmax(x);
         }
 
         // Generate output by calculating value vectors
@@ -125,23 +128,39 @@ impl Block for SelfAttention {
     }
 
     fn back_propagate(&mut self, error: Self::Output) -> Self::Input {
+        // Calculate the error with respect to the input values
         let mut value_error = Array2::<f32>::zeros((self.input.shape()[0], self.input.shape()[1]));
+        
+        // Iterate over the columns (j) of the input
         for j in 0..self.input.shape()[1] {
+            // Iterate over the rows (k) of the input
             for k in 0..self.input.shape()[0] {
+                // Iterate over the rows (i) of the input
                 for i in 0..self.input.shape()[0] {
-                    value_error[[k,j]] += error[[i,j]] * self.weights[[i,k]];
+                    // Accumulate the error by multiplying the error of the current row (i) with the corresponding weight
+                    value_error[[k, j]] += error[[i, j]] * self.weights[[i, k]];
                 }
+                
+                // Iterate over the columns (l) of the input
                 for l in 0..self.input.shape()[1] {
-                    self.params.value[[l,j]] -= value_error[[k,j]] * self.input.index_axis(Axis(0), k)[l] * LR;
+                    // Update the parameters using the accumulated error, input value, and learning rate
+                    self.params.value[[l, j]] -= value_error[[k, j]] * self.input.index_axis(Axis(0), k)[l] * LR;
                 }
             }
         }
 
+        // Calculate the weight update rate
         let mut weight_rate = Array2::<f32>::zeros((self.input.shape()[0], self.input.shape()[1]));
+        
+        // Iterate over the rows (i) of the input
         for i in 0..self.input.shape()[0] {
+            // Iterate over the rows (j) of the input
             for j in 0..self.input.shape()[0] {
+                // Iterate over the columns (k) of the input
                 for k in 0..self.input.shape()[1] {
-                    weight_rate[[i,j]] += error[[i,k]] * self.value_vecs[[j,k]];
+                    // Accumulate the weight update rate by multiplying the error of the current row (i)
+                    // with the corresponding value vector element
+                    weight_rate[[i, j]] += error[[i, k]] * self.value_vecs[[j, k]];
                 }
             }
         }
@@ -150,32 +169,42 @@ impl Block for SelfAttention {
         let mut unnormalised_error = Array2::<f32>::zeros((self.input.shape()[0], self.input.shape()[1]));
         let unchanged_key = self.params.key.clone();
         let unchanged_query = self.params.query.clone();
+
+        // Iterate over the rows (i) of the input
         for i in 0..self.input.shape()[0] {
+            // Iterate over the rows (j) of the input
             for j in 0..self.input.shape()[0] {
+                // Iterate over the rows (k) of the input
                 for k in 0..self.input.shape()[0] {
+                    // Check if the current row (j) is equal to the current row (k)
                     if j == k {
-                        // Calculate rate of change of output with respect to input
-                        let output_rate = self.weights[[i,j]] * (1.0 - self.weights[[i,j]]);
-                        unnormalised_error[[i,j]] += output_rate * weight_rate[[i,j]];
+                        // Calculate the rate of change of the output with respect to the input
+                        let output_rate = self.weights[[i, j]] * (1.0 - self.weights[[i, j]]);
+                        unnormalised_error[[i, j]] += output_rate * weight_rate[[i, j]];
                     } else {
-                        let output_rate = - self.weights[[i,j]] * self.weights[[i,k]];
-                        unnormalised_error[[i,j]] += output_rate * weight_rate[[i,j]];
+                        let output_rate = -self.weights[[i, j]] * self.weights[[i, k]];
+                        unnormalised_error[[i, j]] += output_rate * weight_rate[[i, j]];
                     }
                 }
 
+                // Iterate over the columns (k) of the input
                 for k in 0..self.input.shape()[1] {
-                    let key_rate = self.vec_query_matrix[[i,j,k]] * unnormalised_error[[i,j]];
-                    let query_rate = self.vec_key_matrix[[i,j,k]] * unnormalised_error[[i,j]];
-                    for l in 0..self.input.shape()[1] {
-                        self.params.key[[l,k]] -= key_rate * self.input[[i,l]] * LR;
-                        self.params.query[[l,k]] -= query_rate * self.input[[i,l]] * LR;
+                    // Calculate the rate of change of the key and query vectors
+                    let key_rate = self.vec_query_matrix[[i, j, k]] * unnormalised_error[[i, j]];
+                    let query_rate = self.vec_key_matrix[[i, j, k]] * unnormalised_error[[i, j]];
 
-                        prev_error[[i,l]] += key_rate * unchanged_key[[l,k]];
-                        prev_error[[i,l]] += query_rate * unchanged_query[[l,k]];
+                    // Iterate over the columns (l) of the input
+                    for l in 0..self.input.shape()[1] {
+                        // Update the key and query parameters using the calculated rates, input values, and learning rate
+                        self.params.key[[l, k]] -= key_rate * self.input[[i, l]] * LR;
+                        self.params.query[[l, k]] -= query_rate * self.input[[i, l]] * LR;
+
+                        // Accumulate the previous error by multiplying the rates with the unchanged key and query values
+                        prev_error[[i, l]] += key_rate * unchanged_key[[l, k]];
+                        prev_error[[i, l]] += query_rate * unchanged_query[[l, k]];
                     }
                 }
             }
-        }
 
         prev_error
     }

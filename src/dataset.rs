@@ -11,10 +11,13 @@ pub struct Review {
 fn clean_review(mut review: String, word_embeddings: HashMap<String, Vec<f32>>) -> String {
     // "I love this movie! It's so good."
     // => "i love this movie it's so good "
-    let mut clean_review: String = String::new();
-    let mut in_word = false;
-    let mut current_word = String::new();
+    // Remove "<br" occurrences, as they are likely HTML tags
     review = review.replace("<br", "");
+
+    let mut clean_review: String = String::new();
+    let mut in_word = false; 
+    let mut current_word = String::new();
+
     for character in review.chars() {
         if character.is_alphanumeric() || (character == '\'' && in_word) {
             if !in_word {
@@ -22,6 +25,7 @@ fn clean_review(mut review: String, word_embeddings: HashMap<String, Vec<f32>>) 
             }
             current_word.push(character);
         } else {
+            // If we were inside a word, it has ended, so process it
             if in_word {
                 in_word = false;
                 if current_word != "" {
@@ -35,6 +39,8 @@ fn clean_review(mut review: String, word_embeddings: HashMap<String, Vec<f32>>) 
             }
         }
     }
+
+    // Process the last word if there is one
     if current_word != "" {
         current_word = current_word.to_lowercase();
         if word_embeddings.contains_key(&current_word) {

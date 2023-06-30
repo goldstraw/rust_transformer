@@ -50,25 +50,40 @@ impl Block for Transformer {
 
     fn forward_propagate(&mut self, value: Self::Input) -> Self::Output {
         self.input = value;
+    
+        // Convert input into embedded representation
         let embedded = Array2::<f32>::from_shape_fn((self.num_words, self.dimensionality), |(i, j)| self.embedding[&self.input[i]][j]);
+    
+        // Apply positional encoding to the embedded representation
         let mut enc_output = self.pos_encoder.forward_propagate(embedded);
 
+        // Iterate through each encoder block and forward propagate the output
         for i in 0..self.params.encoder_blocks.len() {
             enc_output = self.params.encoder_blocks[i].forward_propagate(enc_output);
         }
 
+        // Flatten the output for classification
         let flat_output = enc_output.clone().into_shape(self.num_words*self.dimensionality).unwrap();
+    
+        // Forward propagate the flattened output through the classifier
         self.output = self.classifier.forward_propagate(flat_output)[0];
 
+        // Return the output
         self.output
     }
 
     /// Rather than giving an error here, input a desired value.
     fn back_propagate(&mut self, error: Self::Output) -> Self::Input {
+        // Calculate the error of the last layer using the given error and the output of the neural network
         let last_layer_error = 2.0 * (self.output - error) * inv_deriv_sigmoid(self.output);
+        
+        // Back propagate the error to the classifier and get the classifier error
         let classifier_error = self.classifier.back_propagate(arr1(&[last_layer_error]));
+        
+        // Reshape the classifier error to match the shape of the encoder error
         let mut encoder_error = classifier_error.into_shape((self.num_words, self.dimensionality)).unwrap();
 
+        // Iterate over the encoder blocks in reverse order and back propagate the encoder error
         for i in (0..self.params.encoder_blocks.len()).rev() {
             encoder_error = self.params.encoder_blocks[i].back_propagate(encoder_error);
         }

@@ -81,29 +81,47 @@ impl Block for Dense {
     fn forward_propagate(&mut self, value: Self::Input) -> Self::Output {
         self.input = value;
 
+        // Assign input values to the first layer
         self.layer[0].assign(&self.input);
+
+        // Iterate over the layers, starting from the second layer (index 1)
         for i in 1..self.layer.len() {
+            // Compute the weighted sum of the previous layer's output
             let weighted_sum = &self.layer[i - 1].dot(&self.params.weights[i - 1]);
+
             self.layer[i] = weighted_sum + &self.params.biases[i];
+
+            // Apply activation function if not using linear activation
             if !self.linear {
                 if self.classifier {
+                    // Apply sigmoid activation function for classifier networks
                     self.layer[i].mapv_inplace(sigmoid);
                 } else {
+                    // Apply ReLU activation function for non-classifier networks
                     self.layer[i].mapv_inplace(|x| if x > 0.0 { x } else { 0.0 });
                 }
             }
         }
 
-        self.layer[self.layer.len()-1].clone()
+        // Return the output of the last layer
+        self.layer[self.layer.len() - 1].clone()
     }
 
     fn back_propagate(&mut self, error: Self::Output) -> Self::Input {
+        // Set the error of the output layer
         self.error[self.layer.len()-1] = error;
+
+        // Iterate through the layers in reverse order, excluding the output layer
         for i in 0..self.layer.len()-1 {
             let index: usize = self.layer.len() - (i+2);
+
+            // Iterate through the neurons in the current layer
             for j in 0..self.layer[index].len() {
                 self.error[index][j] = 0.0;
+
+                // Iterate through the neurons in the next layer
                 for k in 0..self.layer[index+1].len() {
+                    // Calculate error and update weights
                     let next_error: f32 = self.error[index+1][k];
                     self.error[index][j] += self.params.weights[index][[j,k]] * next_error;
                     self.params.weights[index][[j,k]] -= self.layer[index][j] * next_error * LR;

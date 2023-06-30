@@ -24,21 +24,29 @@ impl Block for AddAndNorm {
     type Input = (Array2<f32>, Array2<f32>);
     type Output = Array2<f32>;
 
+    // Implementation of forward propagation
     fn forward_propagate(&mut self, value: Self::Input) -> Self::Output {
+        // Store the original and modified inputs
         self.original_input = value.0;
         self.modified_input = value.1;
 
+        // Perform element-wise addition of original and modified inputs
         let mut output = &self.original_input + &self.modified_input;
-        for mut x in output.axis_iter_mut(Axis(0)) {
-            let sum_sq = x.mapv(|x| x*x).sum();
-            let n = x.len();
-            let mean = x.sum() / n as f32;
-            let mean_sq = sum_sq / n as f32;
-            let stdev = (mean_sq - mean.powf(2.0)).powf(0.5);
 
+        // Iterate over each row (axis 0) of the output matrix
+        for mut x in output.axis_iter_mut(Axis(0)) {
+            // Calculate the sum of squares for each row
+            let sum_sq = x.mapv(|x| x * x).sum();
+            let n = x.len(); // Get the length of the row
+            let mean = x.sum() / n as f32; // Calculate the mean of the row
+            let mean_sq = sum_sq / n as f32; // Calculate the mean of squares
+            let stdev = (mean_sq - mean.powf(2.0)).powf(0.5); // Calculate the standard deviation
+
+            // Normalize each element in the row using mean and standard deviation
             x.mapv_inplace(|y| (y - mean) / stdev);
         }
 
+        // Return the normalized output
         output
     }
 

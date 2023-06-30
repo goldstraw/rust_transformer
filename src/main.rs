@@ -5,11 +5,7 @@ use std::io;
 fn main() {
     // Set the custom logger as the global logger
     log::set_logger(&logger::CustomLogger).unwrap();
-    if VERBOSE {
-        log::set_max_level(LevelFilter::Info);
-    } else {
-        log::set_max_level(LevelFilter::Error);
-    }
+    log::set_max_level(LevelFilter::Info);
 
     println!("Enter the max number of words: ");
     let mut input = String::new();
