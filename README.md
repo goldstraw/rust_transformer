@@ -13,10 +13,14 @@ To use this transformer implementation, you must have Rust and Cargo installed o
 To run the transformer, use the following command:
 
 ```
-$ cargo run
+$ cargo run --release
 ```
 
 This command will train the transformer on the movie review dataset and then run tests on a test set. The results of the training and testing will be printed to the console.
+
+### Example Training
+![Cost over time of the transformer](learning-graph.webp)
+This specific model was trained with 12 words & 50 dimensions per sample, 2 encoder blocks, 3 attention heads, a hidden layer size of 400 and a learning rate of 0.001.
 
 ## Further Reading
 
