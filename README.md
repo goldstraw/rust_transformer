@@ -8,7 +8,7 @@ This project implements an encoder-only transformer, built without any external 
 
 ## Usage
 
-To use this transformer implementation, you must have Rust and Cargo installed on your machine. After installing Rust and Cargo, you can clone this repository to your local machine and build the project with the following command:
+To use this transformer implementation, you must have Rust and Cargo installed on your machine. After installing Rust and Cargo, you can clone this repository to your local machine.
 
 To run the transformer, use the following command:
 
