@@ -5,14 +5,8 @@ use crate::embedding::load_embeddings;
 use crate::transformer::Transformer;
 use crate::dataset::load_imdb_dataset;
 use log::info;
-use std::fs::OpenOptions;
-use std::io::{BufWriter, Write};
-use crate::LR;
-use std::time::SystemTime;
 
 pub fn run(num_words: usize, dimensionality: usize, num_encoders: usize, num_heads: usize, hidden_layer_size: usize) {
-    let prog_start = SystemTime::now();
-
     let word_embeddings = load_embeddings("word_embeddings.json");
     let dataset = load_imdb_dataset("imdb_dataset.csv", num_words, word_embeddings.clone());
     let mut transformer = Transformer::new(num_words, dimensionality, num_encoders, num_heads, arr1(&[num_words*dimensionality,hidden_layer_size,num_words*dimensionality]), word_embeddings);

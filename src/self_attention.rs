@@ -205,6 +205,7 @@ impl Block for SelfAttention {
                     }
                 }
             }
+        }
 
         prev_error
     }
