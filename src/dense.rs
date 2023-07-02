@@ -70,8 +70,7 @@ pub fn sigmoid(x: f32) -> f32 {
 
 /// Inverse derivative of the sigmoid function
 pub fn inv_deriv_sigmoid(x: f32) -> f32 {
-    let z: f32 = (x / (1.0 - x)).ln();
-    sigmoid(z) * (1.0 - sigmoid(z))
+    x * (1.0 - x)
 }
 
 impl Block for Dense {
