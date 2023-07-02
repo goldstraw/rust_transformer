@@ -130,6 +130,8 @@ impl Block for SelfAttention {
     fn back_propagate(&mut self, error: Self::Output) -> Self::Input {
         // Calculate the error with respect to the input values
         let mut value_error = Array2::<f32>::zeros((self.input.shape()[0], self.input.shape()[1]));
+        // Calculate the weight update rate
+        let mut weight_rate = Array2::<f32>::zeros((self.input.shape()[0], self.input.shape()[1]));
         
         // Iterate over the columns (j) of the input
         for j in 0..self.input.shape()[1] {
@@ -139,28 +141,16 @@ impl Block for SelfAttention {
                 for i in 0..self.input.shape()[0] {
                     // Accumulate the error by multiplying the error of the current row (i) with the corresponding weight
                     value_error[[k, j]] += error[[i, j]] * self.weights[[i, k]];
+
+                    // Accumulate the weight update rate by multiplying the error of the current row (i)
+                    // with the corresponding value vector element
+                    weight_rate[[k, i]] += error[[k, j]] * self.value_vecs[[i, j]];
                 }
                 
                 // Iterate over the columns (l) of the input
                 for l in 0..self.input.shape()[1] {
                     // Update the parameters using the accumulated error, input value, and learning rate
                     self.params.value[[l, j]] -= value_error[[k, j]] * self.input.index_axis(Axis(0), k)[l] * LR;
-                }
-            }
-        }
-
-        // Calculate the weight update rate
-        let mut weight_rate = Array2::<f32>::zeros((self.input.shape()[0], self.input.shape()[1]));
-        
-        // Iterate over the rows (i) of the input
-        for i in 0..self.input.shape()[0] {
-            // Iterate over the rows (j) of the input
-            for j in 0..self.input.shape()[0] {
-                // Iterate over the columns (k) of the input
-                for k in 0..self.input.shape()[1] {
-                    // Accumulate the weight update rate by multiplying the error of the current row (i)
-                    // with the corresponding value vector element
-                    weight_rate[[i, j]] += error[[i, k]] * self.value_vecs[[j, k]];
                 }
             }
         }
